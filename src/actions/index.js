@@ -176,15 +176,26 @@ export const getTreeValue = (obj, path) => {
   return tdir;
 };
 
-export const changeTheme = () => {
-  var thm = store.getState().setting.person.theme,
-    thm = thm == "light" ? "dark" : "light";
-  var icon = thm == "light" ? "sun" : "moon";
+export const setTheme = (theme) => {
+  const validThemes = ["light", "dark", "macos", "windows11", "liquid"];
+  if (!validThemes.includes(theme)) return;
 
-  document.body.dataset.theme = thm;
-  store.dispatch({ type: "STNGTHEME", payload: thm });
-  store.dispatch({ type: "PANETHEM", payload: icon });
-  store.dispatch({ type: "WALLSET", payload: thm == "light" ? 0 : 1 });
+  document.body.dataset.theme = theme;
+  localStorage.setItem(
+    "setting",
+    JSON.stringify({
+      ...store.getState().setting,
+      person: { ...store.getState().setting.person, theme },
+    }),
+  );
+  store.dispatch({ type: "STNGTHEME", payload: theme });
+  store.dispatch({ type: "PANETHEM", payload: theme == "light" ? "sun" : "moon" });
+  store.dispatch({ type: "WALLSET", payload: theme == "dark" ? 1 : 0 });
+};
+
+export const changeTheme = () => {
+  const current = store.getState().setting.person.theme;
+  setTheme(current == "light" ? "dark" : "light");
 };
 
 const loadWidget = async () => {
@@ -193,7 +204,6 @@ const loadWidget = async () => {
     },
     date = new Date();
 
-  // console.log('fetching ON THIS DAY');
   var wikiurl = "https://en.wikipedia.org/api/rest_v1/feed/onthisday/events";
   await axios
     .get(`${wikiurl}/${date.getMonth()}/${date.getDay()}`)
@@ -212,7 +222,6 @@ const loadWidget = async () => {
     })
     .catch((error) => {});
 
-  // console.log('fetching NEWS');
   await axios
     .get("https://github.win11react.com/api-cache/news.json")
     .then((res) => res.data)
@@ -246,17 +255,15 @@ export const loadSettings = () => {
     }
   }
 
-  if (sett.person.theme != "light") changeTheme();
-
+  const theme = sett.person.theme;
+  document.body.dataset.theme = theme;
   store.dispatch({ type: "SETTLOAD", payload: sett });
   if (import.meta.env.MODE != "development") {
     loadWidget();
   }
 };
 
-// mostly file explorer
 export const handleFileOpen = (id) => {
-  // handle double click open
   const item = store.getState().files.data.getId(id);
   if (item != null) {
     if (item.type == "folder") {
